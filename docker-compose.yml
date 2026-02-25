@@ -1,1 +1,16 @@
+services:
+  generator:
+    build: .
+    env_file:
+      - .env
+    volumes:
+      - .:/admin/admin-hacaton
+    command: python generate.py
 
+  analyzer:
+    build: .
+    env_file:
+      - .env
+    volumes:
+      - .:/admin/admin-hacaton
+    command: python analyze.py
