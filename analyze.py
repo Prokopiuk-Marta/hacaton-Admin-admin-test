@@ -18,12 +18,12 @@ class AnalysisResult(BaseModel):
     Список помилок (ignored_question, incorrect_info, rude_tone, no_resolution,
      unnecessary_escalation). Якщо помилок немає, поверни порожній масив []""")
 
-system_instruction = """
+system_instruction = f"""
 Ти - головний інспектор з контролю якості служби підтримки компанії "КАРИБО".
-Твоє завдання — глибоко та об'єктивно проаналізувати діалог між клієнтом та оператором. Не роби
-поверхневих висновків. Спирайся на критерії
+Твоє завдання - глибоко та об'єктивно проаналізувати діалог між клієнтом та оператором. Не роби
+поверхневих висновків. Спирайся на критерії.
 
- Критерії оцінювання:
+Критерії оцінювання:
 
 1. Рівень задоволеності клієнта:
 - "satisfied": проблема повністю вирішена, клієнт щиро вдячний.
@@ -52,6 +52,21 @@ system_instruction = """
 запропонував викликати майстра на платній основі без потреби.
 """
 
+custom_safety_settings = [
+    types.SafetySetting(
+        category=types.HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+        threshold=types.HarmBlockThreshold.BLOCK_NONE,
+    ),
+    types.SafetySetting(
+        category=types.HarmCategory.HARM_CATEGORY_HARASSMENT,
+        threshold=types.HarmBlockThreshold.BLOCK_NONE,
+    ),
+    types.SafetySetting(
+        category=types.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+        threshold=types.HarmBlockThreshold.BLOCK_NONE,
+    )
+]
+
 def analyze_dialogue(dialogue_text: str) -> dict:
     response = client.models.generate_content(
         model='gemini-2.5-pro',
@@ -61,18 +76,20 @@ def analyze_dialogue(dialogue_text: str) -> dict:
             response_mime_type="application/json",
             response_schema=AnalysisResult,
             temperature=0.0,
-            seed=13
+            top_p=0.1,
+            seed=13,
+            safety_settings=custom_safety_settings
         )
+
     )
     return json.loads(response.text)
-
 
 def process_chat(item):
     index, chat = item
     chat_id = f"chat_{index + 1}"
-    intent = chat.get('intent', 'Невідомо')
+    intent = chat.get('intent', 'Undefined')
 
-    print(f"Аналізую {chat_id} (Тема: {intent})...")
+    print(f"analyzing {chat_id} (topic: {intent})...")
     dialogue_text = json.dumps(chat.get('dialogue', chat), ensure_ascii=False, indent=2)
     max_attempt = 3
     for attempt in range(max_attempt):
@@ -84,21 +101,23 @@ def process_chat(item):
                 "analysis": analysis
             }
         except Exception as e:
-            print(f"Помилка для {chat_id} (Спроба {attempt + 1} з {max_attempt}): {e}")
+            print(f"ERROR in {chat_id} (Attempt {attempt + 1} from {max_attempt}): {e}")
             if attempt < max_attempt - 1:
                 time.sleep(2)
             else:
-                print(f" - кейс {chat_id}. Пропускаємо його.")
+                print(f" - case {chat_id}, SKIP")
                 return None
 
-
 def main():
+    dataset_file_name = "dataset.json"
+
     try:
-        with open("dataset.json", "r", encoding="utf-8") as f:
+        with open(dataset_file_name, "r", encoding="utf-8") as f:
             chats = json.load(f)
     except FileNotFoundError:
-        print("Файл dataset.json не знайдено.")
+        print(f"File {dataset_file_name} not found, ensure that is file name of dataset is correct")
         return
+
     start_time = time.time()
     results = []
 
@@ -114,9 +133,9 @@ def main():
     with open("results.json", "w", encoding="utf-8") as f:
         json.dump(results, f, ensure_ascii=False, indent=4)
 
-    print("Аналіз завершено!")
+    print("Analysis SUCCESS")
     time_end = time.time()
-    print(f"time: {time_end - start_time}s")
+    print(f"time: {time_end - start_time:.2f}s")
 
 
 if __name__ == "__main__":

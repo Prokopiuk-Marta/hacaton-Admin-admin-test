@@ -7,7 +7,7 @@ from concurrent.futures import ThreadPoolExecutor
 import time
 
 load_dotenv()
-api_key = os.getenv("OpenAI_api_key")
+api_key = os.getenv("OPENAI_API_KEY")
 
 if not api_key:
     raise ValueError("Ключ OpenAI_api_key не знайдено!")
