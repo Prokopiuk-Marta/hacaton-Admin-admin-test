@@ -16,12 +16,10 @@ if not api_key:
 
 client = genai.Client(api_key=api_key)
 
-# 1. Завантажуємо зовнішні знання
 with open("scenarios.json", "r", encoding="utf-8") as f:
     cfg = json.load(f)
 
 
-# 2. Сувора модель Pydantic для Gemini
 class Message(BaseModel):
     role: Literal["Клієнт", "Оператор"] = Field(description="Тільки 'Клієнт' або 'Оператор'")
     text: str = Field(description="Текст репліки")
@@ -32,7 +30,6 @@ class DialogueResponse(BaseModel):
 
 
 def generate_dialogue(intent, scenario_key):
-    # Додаємо рандомності для унікальності
     agent_name = random.choice(cfg["agents_names"])
     client_profile = random.choice(cfg["client_profiles"])
     scenario_desc = cfg["scenarios"][scenario_key]
@@ -63,7 +60,7 @@ def generate_dialogue(intent, scenario_key):
 
     config = types.GenerateContentConfig(
         system_instruction=system_instruction,
-        temperature=1.0,  # Підняв температуру для більшої креативності ШІ
+        temperature=1.0,
         response_mime_type="application/json",
         response_schema=DialogueResponse,
     )
@@ -76,7 +73,6 @@ def generate_dialogue(intent, scenario_key):
                 config=config
             )
 
-            # Додаємо метадані вручну, щоб потім знати, що ми згенерували
             parsed_data = json.loads(response.text)
             parsed_data["metadata"] = {
                 "intent": intent,
@@ -94,7 +90,7 @@ def generate_dialogue(intent, scenario_key):
 
 if __name__ == "__main__":
     start_time = time.time()
-    print("🚀 Генерація датасету розпочата...")
+    print("Генерація датасету розпочата...")
 
     tasks = []
     for intent in cfg["intents"]:
@@ -102,7 +98,7 @@ if __name__ == "__main__":
             tasks.append((intent, scenario))
 
     random.shuffle(tasks)
-    tasks = tasks[:25]  # Генеруємо 25 штук
+    tasks = tasks[:25]
 
     with ThreadPoolExecutor(max_workers=5) as executor:
         results = list(executor.map(lambda x: generate_dialogue(x[0], x[1]), tasks))
@@ -112,4 +108,4 @@ if __name__ == "__main__":
     with open("dataset.json", "w", encoding="utf-8") as file:
         json.dump(dataset, file, ensure_ascii=False, indent=4)
 
-    print(f"✅ Готово! Згенеровано {len(dataset)} діалогів. Час: {time.time() - start_time:.2f}с")
+    print(f"Готово! Згенеровано {len(dataset)} діалогів. Час: {time.time() - start_time:.2f}с")

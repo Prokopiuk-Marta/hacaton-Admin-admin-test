@@ -16,7 +16,6 @@ if not api_key:
 client = OpenAI(api_key=api_key)
 
 
-# 1. СУВОРА ТИПІЗАЦІЯ І ПОЛЕ REASONING
 class AnalysisResult(BaseModel):
     reasoning: str = Field(
         description="Детальне обґрунтування. ЧОМУ саме така оцінка та задоволеність? Які конкретно репліки чи дії доводять наявність/відсутність помилок?")
@@ -33,7 +32,6 @@ class AnalysisResult(BaseModel):
     ]] = Field(description="Список знайдених помилок. Порожній масив [], якщо помилок немає.")
 
 
-# 2. ОЧИЩЕНИЙ ТА СТРУКТУРОВАНИЙ ПРОМПТ
 system_instruction = """
 Ти - головний інспектор з контролю якості служби підтримки компанії "КАРИБО".
 Твоє завдання - глибоко та об'єктивно проаналізувати діалог. Уважно читай підтекст.
@@ -64,7 +62,6 @@ system_instruction = """
 
 
 def analyze_dialogue(chat_data: dict) -> dict:
-    # Передаємо не тільки текст, а весь JSON (включаючи metadata, якщо вони є)
     chat_str = json.dumps(chat_data, ensure_ascii=False, indent=2)
 
     response = client.beta.chat.completions.parse(
@@ -91,19 +88,18 @@ def process_chat(item):
     max_attempt = 3
     for attempt in range(max_attempt):
         try:
-            # Передаємо весь об'єкт chat, щоб ШІ бачив metadata (intent, scenario)
             analysis = analyze_dialogue(chat)
             return {
                 "chat_id": chat_id,
-                "original_data": chat,  # Зберігаємо оригінал для зручності
+                "original_data": chat,
                 "analysis": analysis
             }
         except Exception as e:
-            print(f"⚠️ Помилка в {chat_id} (Спроба {attempt + 1}): {e}")
+            print(f"Помилка в {chat_id} (Спроба {attempt + 1}): {e}")
             if attempt < max_attempt - 1:
                 time.sleep(2)
             else:
-                print(f"❌ Пропускаємо {chat_id}")
+                print(f"Пропускаємо {chat_id}")
                 return None
     return None
 
@@ -115,14 +111,14 @@ def main():
         with open(dataset_file_name, "r", encoding="utf-8") as f:
             chats = json.load(f)
     except FileNotFoundError:
-        print(f"❌ Файл {dataset_file_name} не знайдено :(")
+        print(f"Файл {dataset_file_name} не знайдено :(")
         return
 
     start_time = time.time()
     results = []
     tasks = list(enumerate(chats))
 
-    with ThreadPoolExecutor(max_workers=5) as executor:
+    with ThreadPoolExecutor(max_workers=15) as executor:
         processed_results = list(executor.map(process_chat, tasks))
 
     for res in processed_results:
@@ -132,7 +128,7 @@ def main():
     with open("results.json", "w", encoding="utf-8") as f:
         json.dump(results, f, ensure_ascii=False, indent=4)
 
-    print(f"✅ Аналіз успішно завершено! Оброблено {len(results)} чатів.")
+    print(f"Аналіз успішно завершено! Оброблено {len(results)} чатів.")
     print(f"⏱ Час виконання: {time.time() - start_time:.2f}с")
 
 
