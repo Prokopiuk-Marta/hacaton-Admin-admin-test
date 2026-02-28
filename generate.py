@@ -102,7 +102,7 @@ def generate_dialogue(intent, scenario_key):
     for attempt in range(3):
         try:
             response = client.models.generate_content(
-                model=model,  # Використовуємо глобальну змінну
+                model=model,
                 contents=user_prompt,
                 config=config
             )
