@@ -3,3 +3,4 @@ python-dotenv
 tqdm
 pydantic
 google-genai
+colorama
