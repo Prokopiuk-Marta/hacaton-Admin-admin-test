@@ -15,7 +15,7 @@
  cd <назва-папки-проєкту>
 
 3. Створіть файл .env та вставте туди ваші api ключі від openAI and gemini (приклад можете побачити в 
-файлі .env.example
+файлі .env.example)
 
 4. Команди для відкриття:
 docker build -t admin-hacaton-bot
