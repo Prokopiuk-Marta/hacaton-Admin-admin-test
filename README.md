@@ -20,8 +20,7 @@
 ### Крок 1. Клонування репозиторію
 Відкрийте термінал, перейдіть у зручну для вас папку та виконайте:
 ```
-git clone [https://github.com/Prokopiuk-Marta/hacaton-Admin-admin-test.git](https://github.com/Prokopiuk-Marta/hacaton-Admin-admin-test.git)
-cd hacaton-Admin-admin-test
+git clone https://github.com/Prokopiuk-Marta/hacaton-Admin-admin-test.git
 ```
 
 КРОК 2
