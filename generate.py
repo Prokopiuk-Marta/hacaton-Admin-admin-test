@@ -1,13 +1,10 @@
-import os
 import json
 import random
 import time
-from dotenv import load_dotenv
 from typing import Literal
 from pydantic import BaseModel, Field
 from concurrent.futures import ThreadPoolExecutor
-
-from google import genai
+from config import gemini_client, generator_model, generator_config
 from google.genai import types
 from lists_data import (
     intents,
@@ -21,14 +18,6 @@ from utils import SpinnerTimer
 
 with open("prompts.json", "r", encoding="utf-8") as f:
     prompts = json.load(f)["generation"]
-
-load_dotenv()
-api_key = os.getenv("GEMINI_API_KEY")
-
-if not api_key:
-    raise ValueError("KEY GEMINI_API_KEY not found!")
-
-client = genai.Client(api_key=api_key)
 
 model = 'gemini-2.5-flash'
 
@@ -76,33 +65,18 @@ def generate_dialogue(intent, scenario_key):
     user_prompt = user_prompt.replace("{scenario_key}", scenario_key)
     user_prompt = user_prompt.replace("{examples_str}", examples_str)
 
-    custom_safety_settings = [
-        types.SafetySetting(
-            category=types.HarmCategory.HARM_CATEGORY_HATE_SPEECH,
-            threshold=types.HarmBlockThreshold.BLOCK_NONE,
-        ),
-        types.SafetySetting(
-            category=types.HarmCategory.HARM_CATEGORY_HARASSMENT,
-            threshold=types.HarmBlockThreshold.BLOCK_NONE,
-        ),
-        types.SafetySetting(
-            category=types.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
-            threshold=types.HarmBlockThreshold.BLOCK_NONE,
-        )
-    ]
-
     config = types.GenerateContentConfig(
         system_instruction=sys_instruction,
-        temperature=1.0,
         response_mime_type="application/json",
         response_schema=DialogueResponse,
-        safety_settings=custom_safety_settings
+        temperature=generator_config["temperature"],
+        safety_settings=generator_config["safety_settings"]
     )
 
     for attempt in range(3):
         try:
-            response = client.models.generate_content(
-                model=model,
+            response = gemini_client.models.generate_content(
+                model=generator_model,
                 contents=user_prompt,
                 config=config
             )
@@ -125,7 +99,7 @@ def generate_dialogue(intent, scenario_key):
     return None
 
 
-if "__name__" == "__main__":
+if __name__ == "__main__":
     start_time = time.time()
 
     tasks = []

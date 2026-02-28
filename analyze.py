@@ -1,24 +1,13 @@
 import json
-import os
 import time
 from concurrent.futures import ThreadPoolExecutor
 from typing import Literal
 from colorama import Fore, Style, init
 
 import openai
-from dotenv import load_dotenv
-from openai import OpenAI
 from pydantic import BaseModel, Field, ValidationError
-
+from config import openai_client, analyzer_config
 init(autoreset=True)
-
-load_dotenv()
-api_key = os.getenv("OPENAI_API_KEY")
-
-if not api_key:
-    raise ValueError("Ключ OPENAI_API_KEY не знайдено!")
-
-client = OpenAI(api_key=api_key)
 
 with open("prompts.json", "r", encoding="utf-8") as f:
     PROMPTS = json.load(f)["analysis"]
@@ -50,19 +39,18 @@ class AnalysisResult(BaseModel):
 
 def analyze_dialogue(chat_data: dict) -> dict:
     chat_str = json.dumps(chat_data, ensure_ascii=False, indent=2)
-
     user_prompt = PROMPTS["user_prompt"].replace("{chat_str}", chat_str)
 
-    response = client.beta.chat.completions.parse(
-        model="gpt-4o-mini",
+    response = openai_client.beta.chat.completions.parse(
+        model=analyzer_config["model"],
+        temperature=analyzer_config["temperature"],
+        top_p=analyzer_config["top_p"],
+        seed=analyzer_config["seed"],
         messages=[
             {"role": "system", "content": PROMPTS["system_instruction"]},
-            {"role": "user", "content": user_prompt},
+            {"role": "user", "content": user_prompt}
         ],
-        response_format=AnalysisResult,
-        temperature=0.0,
-        top_p=1.0,
-        seed=13,
+        response_format=AnalysisResult
     )
 
     return response.choices[0].message.parsed.model_dump()
