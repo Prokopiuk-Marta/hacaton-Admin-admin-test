@@ -87,7 +87,7 @@ def process_chat(item):
 
         except openai.AuthenticationError as e:
             print(Fore.RED + Style.BRIGHT + f"ПОМИЛКА КЛЮЧА {chat_id}: Перевір .env!")
-            return True
+            return None
 
         except ValidationError as e:
             print(Fore.YELLOW + f"КРИВИЙ ФОРМАТ {chat_id} (Спроба {attempt + 1}): Модель видала не JSON.")
@@ -99,8 +99,8 @@ def process_chat(item):
             if attempt < max_attempt - 1:
                 time.sleep(2)
 
-        print(Fore.RED + Style.BRIGHT + f"Skip {chat_id} після {max_attempt} спроб.")
-        return None
+    print(Fore.RED + Style.BRIGHT + f"Skip {chat_id} після {max_attempt} спроб.")
+    return None
 
 
 def main():

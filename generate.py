@@ -19,9 +19,6 @@ from utils import SpinnerTimer
 with open("prompts.json", "r", encoding="utf-8") as f:
     prompts = json.load(f)["generation"]
 
-model = 'gemini-2.5-flash'
-
-
 class Message(BaseModel):
     role: Literal["Клієнт", "Оператор"] = Field(
         description="Роль учасника: суворо 'Клієнт' або 'Оператор'."
