@@ -1,31 +1,26 @@
 import json
 import random
 import time
-from typing import Literal
-from pydantic import BaseModel, Field
 from concurrent.futures import ThreadPoolExecutor
-from config import gemini_client, generator_model, generator_config
-from google.genai import types
-from lists_data import (
-    intents,
-    scenario_keys,
-    mistakes_agent,
-    agents_names,
-    client_names
-)
+from typing import Literal
 
+from google.genai import types
+from pydantic import BaseModel, Field
+
+from config import gemini_client, generator_config, generator_model
+from lists_data import (agents_names, client_names, intents, mistakes_agent,
+                        scenario_keys)
 from utils import SpinnerTimer
 
 with open("prompts.json", "r", encoding="utf-8") as f:
     prompts = json.load(f)["generation"]
 
+
 class Message(BaseModel):
     role: Literal["Клієнт", "Оператор"] = Field(
         description="Роль учасника: суворо 'Клієнт' або 'Оператор'."
     )
-    text: str = Field(
-        description="Текст повідомлення: імена використовуй ТІЛЬКИ тут."
-    )
+    text: str = Field(description="Текст повідомлення: імена використовуй ТІЛЬКИ тут.")
 
 
 class DialogueResponse(BaseModel):
@@ -49,7 +44,7 @@ def generate_dialogue(intent, scenario_key):
             examples_text = ""
             for i, ex in enumerate(data):
                 examples_text += f"\n--- ПРИКЛАД {i + 1} ---\n"
-                if 'dialogue' in ex:
+                if "dialogue" in ex:
                     examples_text += f"ВХІДНИЙ ДІАЛОГ:\n{ex['dialogue']}\n"
             return examples_text
         except FileNotFoundError:
@@ -67,15 +62,13 @@ def generate_dialogue(intent, scenario_key):
         response_mime_type="application/json",
         response_schema=DialogueResponse,
         temperature=generator_config["temperature"],
-        safety_settings=generator_config["safety_settings"]
+        safety_settings=generator_config["safety_settings"],
     )
 
     for attempt in range(3):
         try:
             response = gemini_client.models.generate_content(
-                model=generator_model,
-                contents=user_prompt,
-                config=config
+                model=generator_model, contents=user_prompt, config=config
             )
             parsed_data = json.loads(response.text)
             if "dialogue" in parsed_data:

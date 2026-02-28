@@ -2,11 +2,13 @@ import json
 import time
 from concurrent.futures import ThreadPoolExecutor
 from typing import Literal
-from colorama import Fore, Style, init
 
 import openai
+from colorama import Fore, Style, init
 from pydantic import BaseModel, Field, ValidationError
-from config import openai_client, analyzer_config
+
+from config import analyzer_config, openai_client
+
 init(autoreset=True)
 
 with open("prompts.json", "r", encoding="utf-8") as f:
@@ -48,9 +50,9 @@ def analyze_dialogue(chat_data: dict) -> dict:
         seed=analyzer_config["seed"],
         messages=[
             {"role": "system", "content": PROMPTS["system_instruction"]},
-            {"role": "user", "content": user_prompt}
+            {"role": "user", "content": user_prompt},
         ],
-        response_format=AnalysisResult
+        response_format=AnalysisResult,
     )
 
     return response.choices[0].message.parsed.model_dump()
@@ -71,17 +73,27 @@ def process_chat(item):
             return {"chat_id": chat_id, "original_data": chat, "analysis": analysis}
 
         except openai.APITimeoutError as e:
-            print(Fore.YELLOW + f"ТАЙМАУТ {chat_id} (Спроба {attempt + 1}): Сервер довго думає.")
+            print(
+                Fore.YELLOW
+                + f"ТАЙМАУТ {chat_id} (Спроба {attempt + 1}): Сервер довго думає."
+            )
             if attempt < max_attempt - 1:
                 time.sleep(3)
 
         except openai.APIConnectionError as e:
-            print(Fore.RED + Style.BRIGHT + f"ПОМИЛКА МЕРЕЖІ {chat_id} (Спроба {attempt + 1}): Відпав інтернет.")
+            print(
+                Fore.RED
+                + Style.BRIGHT
+                + f"ПОМИЛКА МЕРЕЖІ {chat_id} (Спроба {attempt + 1}): Відпав інтернет."
+            )
             if attempt < max_attempt - 1:
                 time.sleep(5)
 
         except openai.RateLimitError as e:
-            print(Fore.MAGENTA + f"ЛІМІТ ЗАПИТІВ {chat_id} (Спроба {attempt + 1}): Чекаємо 20 сек...")
+            print(
+                Fore.MAGENTA
+                + f"ЛІМІТ ЗАПИТІВ {chat_id} (Спроба {attempt + 1}): Чекаємо 20 сек..."
+            )
             if attempt < max_attempt - 1:
                 time.sleep(20)
 
@@ -90,7 +102,10 @@ def process_chat(item):
             return None
 
         except ValidationError as e:
-            print(Fore.YELLOW + f"КРИВИЙ ФОРМАТ {chat_id} (Спроба {attempt + 1}): Модель видала не JSON.")
+            print(
+                Fore.YELLOW
+                + f"КРИВИЙ ФОРМАТ {chat_id} (Спроба {attempt + 1}): Модель видала не JSON."
+            )
             if attempt < max_attempt - 1:
                 time.sleep(2)
 
@@ -110,7 +125,7 @@ def main():
         with open(dataset_file_name, "r", encoding="utf-8") as f:
             chats = json.load(f)
     except FileNotFoundError:
-        print(f"FIle {dataset_file_name} not founDDDDDDD :(")
+        print(f"FIle {dataset_file_name} not found :(")
         return
 
     start_time = time.time()
