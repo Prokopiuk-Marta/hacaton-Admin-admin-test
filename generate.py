@@ -26,6 +26,19 @@ class Message(BaseModel):
 class DialogueResponse(BaseModel):
     dialogue: list[Message]
 
+def load_examples():
+    try:
+        with open("examples.json", "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        examples_text = ""
+        for i, ex in enumerate(data):
+            examples_text += f"\nПРИКЛАД {i + 1}\n"
+            if "dialogue" in ex:
+                examples_text += f"ВХІДНИЙ ДІАЛОГ:\n{ex['dialogue']}\n"
+        return examples_text
+    except FileNotFoundError:
+        return ""
 
 def generate_dialogue(intent, scenario_key):
     current_agent = random.choice(agents_names)
@@ -35,20 +48,6 @@ def generate_dialogue(intent, scenario_key):
     sys_instruction = sys_instruction.replace("{current_agent}", current_agent)
     sys_instruction = sys_instruction.replace("{current_client}", current_client)
     sys_instruction = sys_instruction.replace("{mistakes_agent}", str(mistakes_agent))
-
-    def load_examples():
-        try:
-            with open("examples.json", "r", encoding="utf-8") as f:
-                data = json.load(f)
-
-            examples_text = ""
-            for i, ex in enumerate(data):
-                examples_text += f"\n--- ПРИКЛАД {i + 1} ---\n"
-                if "dialogue" in ex:
-                    examples_text += f"ВХІДНИЙ ДІАЛОГ:\n{ex['dialogue']}\n"
-            return examples_text
-        except FileNotFoundError:
-            return ""
 
     examples_str = load_examples()
 
