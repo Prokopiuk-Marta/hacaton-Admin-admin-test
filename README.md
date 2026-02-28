@@ -22,6 +22,7 @@
 ```
 git clone [https://github.com/Prokopiuk-Marta/hacaton-Admin-admin-test.git](https://github.com/Prokopiuk-Marta/hacaton-Admin-admin-test.git)
 cd hacaton-Admin-admin-test
+```
 
 КРОК 2
 Налаштування ключів доступу
