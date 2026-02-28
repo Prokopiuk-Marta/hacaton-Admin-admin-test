@@ -14,3 +14,6 @@ services:
     volumes:
       - .:/admin/admin-hacaton
     command: python analyze.py
+    depends_on:
+      generator:
+        condition: service_completed_successfully
