@@ -1,9 +1,7 @@
 import os
-import sys
 import json
 import random
 import time
-import threading
 from dotenv import load_dotenv
 from typing import Literal
 from pydantic import BaseModel, Field
@@ -11,45 +9,18 @@ from concurrent.futures import ThreadPoolExecutor
 
 from google import genai
 from google.genai import types
-from LISTS_DATA import (
+from lists_data import (
     intents,
     scenario_keys,
     mistakes_agent,
     agents_names,
     client_names
 )
+
+from utils import SpinnerTimer
+
 with open("prompts.json", "r", encoding="utf-8") as f:
-    PROMPTS = json.load(f)["generation"]
-
-class SpinnerTimer:
-    """
-    Класс, який запускає таймер в окремому потоці, поки виконується код всередині 'with'.
-    """
-
-    def __enter__(self):
-        self.stop_event = threading.Event()
-        self.start_time = time.time()
-        self.thread = threading.Thread(target=self._animate, daemon=True)
-        self.thread.start()
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.stop_event.set()
-        self.thread.join()
-        sys.stdout.write("\rGeneration completed. Check dataset file.             \n")
-        sys.stdout.flush()
-
-    def _animate(self):
-        spinner_chars = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
-        while not self.stop_event.is_set():
-            elapsed = int(time.time() - self.start_time)
-            mins, secs = divmod(elapsed, 60)
-
-            spin = spinner_chars[elapsed % len(spinner_chars)]
-
-            sys.stdout.write(f"\r{spin} Generating dataset... [{mins:02d}:{secs:02d}]")
-            sys.stdout.flush()
-            time.sleep(0.1)
+    prompts = json.load(f)["generation"]
 
 load_dotenv()
 api_key = os.getenv("GEMINI_API_KEY")
@@ -59,6 +30,9 @@ if not api_key:
 
 client = genai.Client(api_key=api_key)
 
+model = 'gemini-2.5-flash'
+
+
 class Message(BaseModel):
     role: Literal["Клієнт", "Оператор"] = Field(
         description="Роль учасника: суворо 'Клієнт' або 'Оператор'."
@@ -67,14 +41,16 @@ class Message(BaseModel):
         description="Текст повідомлення: імена використовуй ТІЛЬКИ тут."
     )
 
+
 class DialogueResponse(BaseModel):
     dialogue: list[Message]
+
 
 def generate_dialogue(intent, scenario_key):
     current_agent = random.choice(agents_names)
     current_client = random.choice(client_names)
 
-    sys_instruction = PROMPTS["system_instruction"]
+    sys_instruction = prompts["system_instruction"]
     sys_instruction = sys_instruction.replace("{current_agent}", current_agent)
     sys_instruction = sys_instruction.replace("{current_client}", current_client)
     sys_instruction = sys_instruction.replace("{mistakes_agent}", str(mistakes_agent))
@@ -95,7 +71,7 @@ def generate_dialogue(intent, scenario_key):
 
     examples_str = load_examples()
 
-    user_prompt = PROMPTS["user_prompt"]
+    user_prompt = prompts["user_prompt"]
     user_prompt = user_prompt.replace("{intent}", intent)
     user_prompt = user_prompt.replace("{scenario_key}", scenario_key)
     user_prompt = user_prompt.replace("{examples_str}", examples_str)
@@ -126,7 +102,7 @@ def generate_dialogue(intent, scenario_key):
     for attempt in range(3):
         try:
             response = client.models.generate_content(
-                model='gemini-2.5-flash',
+                model=model,  # Використовуємо глобальну змінну
                 contents=user_prompt,
                 config=config
             )
@@ -148,12 +124,11 @@ def generate_dialogue(intent, scenario_key):
     print(f"Don't available {intent} + {scenario_key}. Skip")
     return None
 
-if __name__ == "__main__":
+
+if "__name__" == "__main__":
     start_time = time.time()
 
-
     tasks = []
-
     for intent in intents:
         for scenario in scenario_keys:
             tasks.append((intent, scenario))
